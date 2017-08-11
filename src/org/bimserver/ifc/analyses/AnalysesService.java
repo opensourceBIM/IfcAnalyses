@@ -17,7 +17,6 @@ import org.bimserver.interfaces.objects.SObjectType;
 import org.bimserver.interfaces.objects.SProject;
 import org.bimserver.models.geometry.GeometryData;
 import org.bimserver.models.geometry.GeometryInfo;
-import org.bimserver.models.ifc2x3tc1.IfcClassificationNotationSelect;
 import org.bimserver.models.ifc2x3tc1.IfcObject;
 import org.bimserver.models.ifc2x3tc1.IfcProduct;
 import org.bimserver.models.ifc2x3tc1.IfcProperty;
@@ -29,7 +28,6 @@ import org.bimserver.models.ifc2x3tc1.IfcRelDefines;
 import org.bimserver.models.ifc2x3tc1.IfcRelDefinesByProperties;
 import org.bimserver.models.ifc2x3tc1.IfcRoot;
 import org.bimserver.models.ifc2x3tc1.IfcSpace;
-import org.bimserver.models.ifc2x3tc1.IfcValue;
 import org.bimserver.models.ifc2x3tc1.IfcWallStandardCase;
 import org.bimserver.models.ifc2x3tc1.Tristate;
 import org.bimserver.models.ifc2x3tc1.impl.IfcObjectImpl;
@@ -47,7 +45,7 @@ public class AnalysesService  extends AbstractAddExtendedDataService {
 
 	
 	private static final Logger LOGGER = LoggerFactory.getLogger(AnalysesService.class);
-
+	private final String STANDARD_SET_PREFIX = "something";
 	
 	
 	public AnalysesService() {
@@ -167,14 +165,23 @@ public class AnalysesService  extends AbstractAddExtendedDataService {
 		
 		/*
 		 * Number of properties/property sets per object
+		 * Objects with "Voodoo properysets" (property sets that do not start with a standardized name)  TODO : what is a standardized name
+		 *	Number of proxy objects
 		 */
 		
 		long propsetCount = 0;
 		long propCount = 0;
 	    long objWithPropCount = 0 ;
-		for (Long id  : allObjects.keySet())
+	    long objProxyCount = 0 ;
+	    List<IfcObject> objectWithVodooSet = new ArrayList<IfcObject>();
+	    List<IfcObject> objectWithVodooProp = new ArrayList<IfcObject>();
+	   
+ 		for (Long id  : allObjects.keySet())
 		{
 			IdEObject eObject = model.get(id);
+			if (eObject.eIsProxy()) 
+				objProxyCount++ ;
+			
 			if (eObject instanceof IfcObjectImpl && (eObject instanceof IfcPropertySet)==false && (eObject instanceof IfcPropertySingleValue)==false  )
 			{
 				
@@ -182,13 +189,16 @@ public class AnalysesService  extends AbstractAddExtendedDataService {
 				for (IfcRelDefines def : ob.getIsDefinedBy())
 				{
 					objWithPropCount++;
-					IfcPropertySetDefinition propSet = (IfcPropertySetDefinition)((IfcRelDefinesByProperties)def).getRelatingPropertyDefinition() ;
-					if (propSet instanceof IfcPropertySet)
+					IfcPropertySetDefinition propSetDef = (IfcPropertySetDefinition)((IfcRelDefinesByProperties)def).getRelatingPropertyDefinition() ;
+					if (propSetDef instanceof IfcPropertySet)
 					{
+						if (!propSetDef.getName().startsWith(STANDARD_SET_PREFIX) && !objectWithVodooSet.contains(ob))
+							objectWithVodooSet.add(ob);
 						propsetCount++;
-						for (IfcProperty prop:((IfcPropertySet)propSet).getHasProperties())
+						for (IfcProperty prop:((IfcPropertySet)propSetDef).getHasProperties())
 						{
-
+							if (!prop.getName().startsWith(STANDARD_SET_PREFIX) && !objectWithVodooProp.contains(ob))
+								objectWithVodooProp.add(ob);
 							if (prop instanceof IfcPropertySingleValue){
 								propCount++;
 							}
@@ -198,11 +208,30 @@ public class AnalysesService  extends AbstractAddExtendedDataService {
 			}
 		}
 
+		extendedData.append("Number of proxy objects: " + objProxyCount + "n");
+		LOGGER.debug("Number of proxy objects: " + objProxyCount);
+
 		extendedData.append("Number of properties: " + propCount + " in " + objWithPropCount + " objects \n");
 		LOGGER.debug("Number of properties: " + propCount + " in " + objWithPropCount + " objects");
 		extendedData.append("Number of properties: " + propCount + " in " + propsetCount + " propertysets \n");
 		LOGGER.debug("Number of properties: " + propCount + " in " + propsetCount + " propertysets");
+		extendedData.append("Number of IfcObject with voodoo propertySets: " + objectWithVodooSet.size() + "n");
+		LOGGER.debug("Number of IfcObject with voodoo propertySets: " + objectWithVodooSet.size());
 		
+		for (IfcObject obj : objectWithVodooSet)
+		{
+			extendedData.append("\t" +  obj.getName() + "(" + obj.getGlobalId() + "\n");
+			LOGGER.debug("\t" +  obj.getName() + "(" + obj.getGlobalId());
+			
+		}
+		extendedData.append("Number of IfcObject with voodoo properties: " + objectWithVodooProp.size() + "n");
+		LOGGER.debug("Number of IfcObject with voodoo properties: " + objectWithVodooProp.size());
+		for (IfcObject obj : objectWithVodooProp)
+		{
+			extendedData.append("\t" +  obj.getName() + "(" + obj.getGlobalId() + "\n");
+			LOGGER.debug("\t" +  obj.getName() + "(" + obj.getGlobalId());
+			
+		}
 		
 		
 		/*
@@ -216,9 +245,6 @@ public class AnalysesService  extends AbstractAddExtendedDataService {
 		
 		for (IfcRelAssociatesClassification ifcRelAssociatesClassification : classificationsList)
 		{
-			
-
-			
 			if (!classificationKinds.contains(ifcRelAssociatesClassification.getName()))
 				classificationKinds.add(ifcRelAssociatesClassification.getName());
 			
@@ -242,18 +268,6 @@ public class AnalysesService  extends AbstractAddExtendedDataService {
 			LOGGER.debug("\t"+ classificationName);
 			
 		}
-		
-		
-		/*
-		 * Objects with "Voodoo properysets" (property sets that do not start with a standardized name) 
-		 * <TODO : what is standardized>
-		 */
-		
-		/*
-		 * 	Number of proxy objects
-		 * <TODO : find proxy items>
-
-		 */
 		
 		addExtendedData(extendedData.toString().getBytes(Charsets.UTF_8), "test.txt", "Test", "text/plain", bimServerClientInterface, roid);
 		
