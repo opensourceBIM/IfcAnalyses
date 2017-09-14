@@ -2,7 +2,7 @@
 <PluginDescriptor>
 	<JavaPlugin>
 		<interfaceClass>org.bimserver.plugins.services.ServicePlugin</interfaceClass>
-		<implementationClass>org.bimserver.runmodelcompare.AnalysesPlugin</implementationClass>
+		<implementationClass>org.bimserver.ifc.analyses.AnalysesService</implementationClass>
 		<description>BIMserver plugin that provides an analysis of a model and communicates this to a wordpress server</description>
 	</JavaPlugin>
 </PluginDescriptor>
