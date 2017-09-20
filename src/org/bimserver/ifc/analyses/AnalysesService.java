@@ -60,7 +60,7 @@ public class AnalysesService  extends AbstractAddExtendedDataService {
 	private final String STANDARD_SET_PREFIX = "Pset_";
 		
 	public AnalysesService() {
-		super("TODO");
+		super("analysesNameSpace");
 	}
 	
 	public void setOuputFormat(outputFormats outputformat)
@@ -113,11 +113,12 @@ public class AnalysesService  extends AbstractAddExtendedDataService {
 		 * The total number of IfcProduct 
 		 */
 		long totalIfcObjects = totalObjectsList.size();
+		
 		if (outputFormat == outputFormats.JSON)
-		{
-			ObjectNode  totalIfcObjectsJSON = OBJECT_MAPPER.createObjectNode();
+		{ 
+			ObjectNode totalIfcObjectsJSON = OBJECT_MAPPER.createObjectNode();
 			totalIfcObjectsJSON.put("IfcObjects", totalIfcObjects);
-			results.add(totalIfcObjects);
+			results.add(totalIfcObjectsJSON);
 		}
 		else
 		{
@@ -252,7 +253,8 @@ public class AnalysesService  extends AbstractAddExtendedDataService {
 	   
  		for (Long id  : allObjects.keySet())
 		{
-			IdEObject eObject = model.get(id);
+			
+ 			IdEObject eObject = model.get(id);
 			if (eObject.eIsProxy()) 
 				objProxyCount++ ;
 			
@@ -268,7 +270,8 @@ public class AnalysesService  extends AbstractAddExtendedDataService {
 						IfcPropertySetDefinition propSetDef = (IfcPropertySetDefinition)((IfcRelDefinesByProperties)def).getRelatingPropertyDefinition() ;
 						if (propSetDef instanceof IfcPropertySet)
 						{
-							if (!propSetDef.getName().startsWith(STANDARD_SET_PREFIX) && !objectWithVodooSet.contains(ob))
+							
+							if (!propSetDef.getName().startsWith(STANDARD_SET_PREFIX) && !objectWithVodooSet.contains(ob))				
 								objectWithVodooSet.add(ob);
 							for (IfcProperty prop:((IfcPropertySet)propSetDef).getHasProperties())
 							{
@@ -284,12 +287,12 @@ public class AnalysesService  extends AbstractAddExtendedDataService {
 			}
 		}
 
- 		
+		LOGGER.debug("Done checking objects for voodoo properties.");
+		
 		if (outputFormat == outputFormats.JSON)
 		{
 			ObjectNode  totalproxyJSON = OBJECT_MAPPER.createObjectNode();
 			totalproxyJSON.put("Number of proxy objects", objProxyCount);
-			results.add(totalproxyJSON);
 			results.add(totalproxyJSON);
 
 			ObjectNode  totalpropertiesJSON = OBJECT_MAPPER.createObjectNode();
@@ -298,32 +301,34 @@ public class AnalysesService  extends AbstractAddExtendedDataService {
 
 			ObjectNode  totalObjectsxWithPropertiesJSON = OBJECT_MAPPER.createObjectNode();
 			totalObjectsxWithPropertiesJSON.put("Ojects with properties", objWithPropCount);
-			results.add(totalObjectsxWithPropertiesJSON);
 			
 			ObjectNode  totalObjectsxWithVoodooPropertiesJSON = OBJECT_MAPPER.createObjectNode();
 			totalObjectsxWithVoodooPropertiesJSON.put("Ojects with voodoo properties", objectWithVodooSet.size());
 			
-			ObjectNode  objectWithVodooPropertiesSetJSON = OBJECT_MAPPER.createObjectNode();
 			ArrayNode  objectWithVodooPropertiesSetArrayJSON = OBJECT_MAPPER.createArrayNode();
 			
 			for (IfcObject obj : objectWithVodooSet)
 			{
-				objectWithVodooPropertiesSetJSON.put("voodooPropertySet", obj.getName() + "(" + obj.getGlobalId() + ")");
-				objectWithVodooPropertiesSetArrayJSON.add(objectWithVodooPropertiesSetJSON);
+				ObjectNode  setNodeJSON = OBJECT_MAPPER.createObjectNode();
+				setNodeJSON.put("Object", obj.getName());
+				setNodeJSON.put("ObjectId", obj.getOid());
+				objectWithVodooPropertiesSetArrayJSON.add(setNodeJSON);
+				
 			}
+			totalObjectsxWithVoodooPropertiesJSON.putPOJO("objectsWithPropertieSet", objectWithVodooPropertiesSetArrayJSON);
 			
-			results.add(objectWithVodooPropertiesSetArrayJSON);
-			
-			ObjectNode  objectWithVodooPropertiesJSON = OBJECT_MAPPER.createObjectNode();
 			ArrayNode  objectWithVodooPropertiesArrayJSON = OBJECT_MAPPER.createArrayNode();
 			
-			for (IfcObject obj : objectWithVodooSet)
+			for (IfcObject obj : objectWithVodooProp)
 			{
-				objectWithVodooPropertiesJSON.put("voodooPropertySet", obj.getName() + "(" + obj.getGlobalId() + ")");
-				objectWithVodooPropertiesArrayJSON.add(objectWithVodooPropertiesJSON);
+				ObjectNode  propNodeJSON = OBJECT_MAPPER.createObjectNode();
+				propNodeJSON.put("Object", obj.getName());
+				propNodeJSON.put("ObjectId", obj.getOid());
+				objectWithVodooPropertiesArrayJSON.add(propNodeJSON);
 			}
+			totalObjectsxWithVoodooPropertiesJSON.putPOJO("objectsWithProperties", objectWithVodooPropertiesArrayJSON);
 			
-			results.add(objectWithVodooPropertiesArrayJSON);
+			results.add(totalObjectsxWithVoodooPropertiesJSON);
 
 		}
 		else
@@ -340,51 +345,46 @@ public class AnalysesService  extends AbstractAddExtendedDataService {
 			LOGGER.debug("IfcObject with voodoo sets: " + objectWithVodooProp.size());
 			for (IfcObject obj : objectWithVodooSet)
 			{
-				extendedData.append("\t" +  obj.getName() + "(" + obj.getGlobalId() + "\n");
-				LOGGER.debug("\t" +  obj.getName() + "(" + obj.getGlobalId());
+				extendedData.append("\t" + obj.getName() + "\n");
+				LOGGER.debug("\t" +  obj.getName());
 				
 			}
 			extendedData.append("IfcObject with voodoo properties: " + objectWithVodooProp.size() + "n");
 			LOGGER.debug("IfcObject with voodoo properties: " + objectWithVodooProp.size());
 			for (IfcObject obj : objectWithVodooProp)
 			{
-				extendedData.append("\t" +  obj.getName() + "(" + obj.getGlobalId() + "\n");
-				LOGGER.debug("\t" +  obj.getName() + "(" + obj.getGlobalId());
+				extendedData.append("\t" +  obj.getName() + "\n");
+				LOGGER.debug(obj.getName());
 				
 			}
 
 		}
 		
-		
-
-		
-		
 		/*
 		 * Number of objects with Classification attributes
-		 * Kind of classifications <TODO : find out what "kind" means> 
 		 */
 		
-		ArrayList<Long> classifiedObjectsList = new ArrayList<Long>();
+		ArrayList<IfcRoot> classifiedObjectsList = new ArrayList<IfcRoot>();
 		List<IfcRelAssociatesClassification> classificationsList = model.getAllWithSubTypes(IfcRelAssociatesClassification.class);
-		Map<String, List<String>> classificationByKinds = new HashMap<String, List<String>>();
-		Map<String, List<String>> classificationByObject = new HashMap<String, List<String>>();
+		Map<IfcRelAssociatesClassification, List<IfcRoot>> classificationByKinds = new HashMap<IfcRelAssociatesClassification, List<IfcRoot>>();
+		Map<IfcRoot, List<IfcRelAssociatesClassification>> classificationByObject = new HashMap<IfcRoot, List<IfcRelAssociatesClassification>>();
 		
 		for (IfcRelAssociatesClassification ifcRelAssociatesClassification : classificationsList)
 		{
-			if (!classificationByKinds.containsKey(ifcRelAssociatesClassification.getName()))
-				classificationByKinds.put(ifcRelAssociatesClassification.getName(),new ArrayList<>());
+			if (!classificationByKinds.containsKey(ifcRelAssociatesClassification))
+				classificationByKinds.put(ifcRelAssociatesClassification,new ArrayList<>());
 			EList<IfcRoot> a = ifcRelAssociatesClassification.getRelatedObjects();
 			for (IfcRoot ifcRoot : a)
 			{
-				if (!classificationByObject.containsKey(ifcRoot.getGlobalId()))
+				if (!classificationByObject.containsKey(ifcRoot))
 				{
-					classificationByObject.put(ifcRoot.getGlobalId(), new ArrayList<String>());
+					classificationByObject.put(ifcRoot, new ArrayList<IfcRelAssociatesClassification>());
 				}
-				classificationByObject.get(ifcRoot.getGlobalId()).add(ifcRelAssociatesClassification.getName());
-				classificationByKinds.get(ifcRelAssociatesClassification.getName()).add(ifcRoot.getName() + "(" + ifcRoot.getGlobalId() + ")");
-				if (!classifiedObjectsList.contains(ifcRoot.getOid()))
+				classificationByObject.get(ifcRoot).add(ifcRelAssociatesClassification);
+				classificationByKinds.get(ifcRelAssociatesClassification).add(ifcRoot);
+				if (!classifiedObjectsList.contains(ifcRoot))
 				{
-					classifiedObjectsList.add(ifcRoot.getOid());
+					classifiedObjectsList.add(ifcRoot);
 			    }
 			}  
 		}
@@ -392,105 +392,117 @@ public class AnalysesService  extends AbstractAddExtendedDataService {
 
 		if (outputFormat == outputFormats.JSON)
 		{
-			//log by kinds
-			ObjectNode  totalObjectsWithClassificationJSON = OBJECT_MAPPER.createObjectNode();
-			totalObjectsWithClassificationJSON.put("Number of objects with classification", classifiedObjectsList.size());
-			results.add(totalObjectsWithClassificationJSON);
+			ObjectNode  totalClassifications = OBJECT_MAPPER.createObjectNode();
+			totalClassifications.put("Number of classification", classificationsList.size());
 
-			ObjectNode  classificationTypeJSON = OBJECT_MAPPER.createObjectNode();
-			ObjectNode  objectWithClassificationTypeJSON = OBJECT_MAPPER.createObjectNode();
-			ArrayNode  classificationTypeArrayJSON = OBJECT_MAPPER.createArrayNode();
+			//log by kinds
+/*			ArrayNode  classificationTypeArrayJSON = OBJECT_MAPPER.createArrayNode();
 			ArrayNode  objectsWithClassificationTypeArrayJSON = OBJECT_MAPPER.createArrayNode();
 		
-			for (String classificationName : classificationByKinds.keySet())
+			for (IfcRelAssociatesClassification classification : classificationByKinds.keySet())
 			{
-				classificationTypeJSON.put("Classification", classificationName);
+
+				ObjectNode  classificationTypeJSON = OBJECT_MAPPER.createObjectNode();
+				classificationTypeJSON.put("Classification", classification.getName());
+				classificationTypeJSON.put("Cid", classification.getOid());
 				
-				for (String object : classificationByKinds.get(classificationName) )
+				for (IfcRoot object : classificationByKinds.get(classification) )
 				{	
-					objectWithClassificationTypeJSON.put("IfcObject", object);
+					ObjectNode  objectWithClassificationTypeJSON = OBJECT_MAPPER.createObjectNode();
+					objectWithClassificationTypeJSON.put("Object", object.getName());
+					objectWithClassificationTypeJSON.put("ObjectId", object.getOid());
 					objectsWithClassificationTypeArrayJSON.add(objectWithClassificationTypeJSON);
 				}
 				classificationTypeJSON.putPOJO("objects", objectsWithClassificationTypeArrayJSON);
 				
 				classificationTypeArrayJSON.add(classificationTypeJSON);
 			}
+			totalClassifications.putPOJO("Classifications", classificationTypeArrayJSON);
+			*/
 			
-			results.add(classificationTypeArrayJSON);
+			
+			//log by Object
+			ObjectNode  totalObjectsWithClassificationJSON = OBJECT_MAPPER.createObjectNode();
+			totalObjectsWithClassificationJSON.put("Number of objects with classification", classifiedObjectsList.size());
+
+			ArrayNode  objectArrayJSON = OBJECT_MAPPER.createArrayNode();
+			
+			for (IfcRoot object : classificationByObject.keySet())
+			{
+				ObjectNode  ObjectWithClassificationJSON = OBJECT_MAPPER.createObjectNode();
+				ObjectWithClassificationJSON.put("IfcObject", object.getName());
+				ObjectWithClassificationJSON.put("Oid", object.getOid());
+				ArrayNode  classificationTypeForObjectsArrayJSON = OBJECT_MAPPER.createArrayNode();
+
+				for (IfcRelAssociatesClassification classification : classificationByObject.get(object) )
+				{
+					ObjectNode  classificationTypeJSON = OBJECT_MAPPER.createObjectNode();
+					classificationTypeJSON.put("Classification", classification.getName());
+					classificationTypeJSON.put("ClassificationId", classification.getOid());
+					classificationTypeForObjectsArrayJSON.add(classificationTypeJSON);
+				}
+				ObjectWithClassificationJSON.putPOJO("Classifications",classificationTypeForObjectsArrayJSON);
+				objectArrayJSON.add(ObjectWithClassificationJSON);
+			}
+			totalClassifications.putPOJO("Objects", objectArrayJSON);
+			
+			results.add(totalClassifications);
+		
 		}
 		else
 		{
 			//log by kinds
-			extendedData.append("Number of objects with classification: " + classifiedObjectsList.size() + "\n");
+/*			extendedData.append("Number of objects with classification: " + classifiedObjectsList.size() + "\n");
 			LOGGER.debug("Number of objects with classification: " + classifiedObjectsList.size());
 			extendedData.append("Type of classifications: " + "\n");
 			LOGGER.debug("Type of classifications:");
-			for (String classificationName : classificationByKinds.keySet())
+			for (IfcRelAssociatesClassification classification : classificationByKinds.keySet())
 			{
-				extendedData.append("\t"+ classificationName + ":\n");
-				LOGGER.debug("\t"+ classificationName+ ":");	
-				for (String object : classificationByKinds.get(classificationName) )
+				
+				extendedData.append("\t"+ classification.getName() + ":\n");
+				LOGGER.debug("\t"+ classification.getName()+ ":");	
+				for (IfcRoot object : classificationByKinds.get(classification) )
 				{
-					extendedData.append("\t\t"+ object + "\n");
-					LOGGER.debug("\t\t"+ object);	
+					extendedData.append("\t\t"+ object.getName() + "\n");
+					LOGGER.debug("\t\t"+ object.getName());	
 
 				}
 			}
-			
+*/			
 			// log by Objects
-
 			
 			extendedData.append("Number of objects with classification: " + classifiedObjectsList.size() + "\n");
 			LOGGER.debug("Number of objects with classification: " + classifiedObjectsList.size());
 			extendedData.append("Objects:" + "\n");
 			LOGGER.debug("Objects:");
-			for (String objectId : classificationByObject.keySet())
+			for (IfcRoot object : classificationByObject.keySet())
 			{
-				extendedData.append("\t"+ objectId + ":\n");
-				LOGGER.debug("\t"+ objectId+ ":");	
-				for (String classification : classificationByObject.get(objectId) )
+				extendedData.append("\t"+ object.getName() + ":\n");
+				LOGGER.debug("\t"+ object.getName()+ ":");	
+				for (IfcRelAssociatesClassification classification : classificationByObject.get(object) )
 				{
-					extendedData.append("\t\t"+ classification + "\n");
-					LOGGER.debug("\t\t"+ classification );	
+					extendedData.append("\t\t"+ classification.getName() + "\n");
+					LOGGER.debug("\t\t"+ classification.getName() );	
 
 				}
 			}
 
 		}		
 		
-//		// log by Objects
-//
-//		
-//		extendedData.append("Number of objects with classification: " + classifiedObjectsList.size() + "\n");
-//		LOGGER.debug("Number of objects with classification: " + classifiedObjectsList.size());
-//		extendedData.append("Objects:" + "\n");
-//		LOGGER.debug("Objects:");
-//		for (String objectId : classificationByObject.keySet())
-//		{
-//			extendedData.append("\t"+ objectId + ":\n");
-//			LOGGER.debug("\t"+ objectId+ ":");	
-//			for (String classification : classificationByObject.get(objectId) )
-//			{
-//				extendedData.append("\t\t"+ classification + "\n");
-//				LOGGER.debug("\t\t"+ classification );	
-//
-//			}
-//		}
-
-		
 		if (outputFormat == outputFormats.JSON)
 		{
 			result.putPOJO("results", results);
 			String json = result.toString();
+			LOGGER.debug("Adding text to extended data : " + json);	
 			addExtendedData(json.getBytes(Charsets.UTF_8), "test.txt", "Test", "text/plain", bimServerClientInterface, roid);
-			LOGGER.debug("Added text to extended data : " + json);	
+
 		}
 		else
 		{	
+			LOGGER.debug("Adding text to extended data : " + extendedData.toString());	
 			addExtendedData(extendedData.toString().getBytes(Charsets.UTF_8), "test.txt", "Test", "text/plain", bimServerClientInterface, roid);
 		}
 		
-		// TODO : what will be the ouput format , now it;s plain text 
 		
 	}
 
