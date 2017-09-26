@@ -1,4 +1,4 @@
-package org.bimserver.ifc.analyses;
+package org.bimserver.ifc.analyses.ifc3;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
@@ -45,7 +45,7 @@ import com.google.common.base.Charsets;
 import com.google.common.collect.BiMap;
 
 
-public class AnalysesService  extends AbstractAddExtendedDataService {
+public class AnalysesServiceDetailed  extends AbstractAddExtendedDataService {
 
 	private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
@@ -56,10 +56,10 @@ public class AnalysesService  extends AbstractAddExtendedDataService {
 	
 	private outputFormats outputFormat = outputFormats.JSON;
 	
-	private static final Logger LOGGER = LoggerFactory.getLogger(AnalysesService.class);
+	private static final Logger LOGGER = LoggerFactory.getLogger(AnalysesServiceDetailed.class);
 	private final String STANDARD_SET_PREFIX = "Pset_";
 		
-	public AnalysesService() {
+	public AnalysesServiceDetailed() {
 		super("analysesNameSpace");
 	}
 	
@@ -71,10 +71,8 @@ public class AnalysesService  extends AbstractAddExtendedDataService {
 	@Override
 	public void newRevision(RunningService runningService, BimServerClientInterface bimServerClientInterface, long poid,
 			long roid, String userToken, long soid, SObjectType settings) throws Exception {
-		// TODO Auto-generated method stub
 		
-		
-		LOGGER.debug("Starting Analayses !!!! ");			
+		LOGGER.debug("Startingm detailed Analayses !!!! ");			
 
 		StringBuffer extendedData = new StringBuffer();  
 		SProject project;
@@ -301,9 +299,15 @@ public class AnalysesService  extends AbstractAddExtendedDataService {
 
 			ObjectNode  totalObjectsxWithPropertiesJSON = OBJECT_MAPPER.createObjectNode();
 			totalObjectsxWithPropertiesJSON.put("Ojects with properties", objWithPropCount);
+			results.add(totalObjectsxWithPropertiesJSON);
+
+			ObjectNode  totalObjectsxWithVoodooPropertiesSetsJSON = OBJECT_MAPPER.createObjectNode();
+			totalObjectsxWithVoodooPropertiesSetsJSON.put("Ojects with voodoo properties sets", objectWithVodooSet.size());
+			results.add(totalObjectsxWithVoodooPropertiesSetsJSON);
+
 			
 			ObjectNode  totalObjectsxWithVoodooPropertiesJSON = OBJECT_MAPPER.createObjectNode();
-			totalObjectsxWithVoodooPropertiesJSON.put("Ojects with voodoo properties", objectWithVodooSet.size());
+			totalObjectsxWithVoodooPropertiesJSON.put("Ojects with voodoo properties", objectWithVodooProp.size());
 			
 			ArrayNode  objectWithVodooPropertiesSetArrayJSON = OBJECT_MAPPER.createArrayNode();
 			

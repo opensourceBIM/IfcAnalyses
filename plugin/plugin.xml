@@ -2,7 +2,14 @@
 <PluginDescriptor>
 	<JavaPlugin>
 		<interfaceClass>org.bimserver.plugins.services.ServicePlugin</interfaceClass>
-		<implementationClass>org.bimserver.ifc.analyses.AnalysesService</implementationClass>
-		<description>BIMserver plugin that provides an analysis of a model and communicates this to a wordpress server</description>
+		<implementationClass>org.bimserver.ifc.analyses.ifc3.AnalysesService</implementationClass>
+		<description>BIMserver plugin that provides an analysis of a model and and outputs it into json</description>
+		<name>Simple Analyses Service</name>
+	</JavaPlugin>
+	<JavaPlugin>
+		<interfaceClass>org.bimserver.plugins.services.ServicePlugin</interfaceClass>
+		<implementationClass>org.bimserver.ifc.analyses.ifc3.AnalysesServiceDetailed</implementationClass>
+		<description>BIMserver plugin that provides a detailed analysis of a model and outputs it into json</description>
+		<name>Detailed Analyses Service</name>
 	</JavaPlugin>
 </PluginDescriptor>
