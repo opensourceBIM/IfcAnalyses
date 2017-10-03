@@ -1,21 +1,16 @@
 package org.bimserver.ifc.analyses.ifc3;
 
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
-import java.nio.IntBuffer;
 import java.util.ArrayList;
-import java.util.Comparator;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.TreeMap;
-import java.util.concurrent.atomic.AtomicInteger;
-
+import java.util.Set;
 import org.bimserver.emf.IdEObject;
 import org.bimserver.emf.IfcModelInterface;
 import org.bimserver.interfaces.objects.SObjectType;
 import org.bimserver.interfaces.objects.SProject;
-import org.bimserver.models.geometry.GeometryData;
 import org.bimserver.models.geometry.GeometryInfo;
 import org.bimserver.models.ifc2x3tc1.IfcObject;
 import org.bimserver.models.ifc2x3tc1.IfcProduct;
@@ -27,9 +22,6 @@ import org.bimserver.models.ifc2x3tc1.IfcRelAssociatesClassification;
 import org.bimserver.models.ifc2x3tc1.IfcRelDefines;
 import org.bimserver.models.ifc2x3tc1.IfcRelDefinesByProperties;
 import org.bimserver.models.ifc2x3tc1.IfcRoot;
-import org.bimserver.models.ifc2x3tc1.IfcSpace;
-import org.bimserver.models.ifc2x3tc1.IfcWallStandardCase;
-import org.bimserver.models.ifc2x3tc1.Tristate;
 import org.bimserver.models.ifc2x3tc1.impl.IfcObjectImpl;
 import org.bimserver.plugins.services.AbstractAddExtendedDataService;
 import org.bimserver.plugins.services.BimServerClientInterface;
@@ -71,15 +63,14 @@ public class AnalysesServiceDetailed  extends AbstractAddExtendedDataService {
 	@Override
 	public void newRevision(RunningService runningService, BimServerClientInterface bimServerClientInterface, long poid,
 			long roid, String userToken, long soid, SObjectType settings) throws Exception {
-		
-		LOGGER.debug("Startingm detailed Analayses !!!! ");			
+				
+		LOGGER.debug("Starting Detailed Analayses Plugin !!!! ");			
 
 		StringBuffer extendedData = new StringBuffer();  
 		SProject project;
 		project = bimServerClientInterface.getServiceInterface().getProjectByPoid(poid);
 		
 		IfcModelInterface model =  bimServerClientInterface.getModel(project, roid, true, true, true);
-		
 		
 		ObjectNode result = OBJECT_MAPPER.createObjectNode();
 		ArrayNode results = OBJECT_MAPPER.createArrayNode();
@@ -96,7 +87,7 @@ public class AnalysesServiceDetailed  extends AbstractAddExtendedDataService {
 		if (outputFormat == outputFormats.JSON)
 		{
 			ObjectNode  totalObjectsJSON = OBJECT_MAPPER.createObjectNode();
-			totalObjectsJSON.put("objects", totalObjects);
+			totalObjectsJSON.put("Totalobjects", totalObjects);
 			results.add(totalObjectsJSON);
 		}
 		else
@@ -124,72 +115,29 @@ public class AnalysesServiceDetailed  extends AbstractAddExtendedDataService {
 			LOGGER.debug("Total amount of objects: " + totalObjects);			
 		}
 		
-
-		/*
-		 * Number of geometric triangles per m3 
-		 * Top 10 objects with most geometric triangles per m3 
-		 */
-		
-		long totalM3 = 0;
-		for (IfcSpace ifcSpace : model.getAll(IfcSpace.class)) {
-			Double volume = new Double(0);
-			try {
-				volume = IfcUtils.getIfcQuantityVolume(ifcSpace, "NetVolume");
-			} catch (Exception e) {
-				// something went wrong, but don;t kill the analyses for it
-				LOGGER.debug("Something went wrong for calculating the volume for: " + ifcSpace.getGlobalId());
-				e.printStackTrace();
-			}
-			
-			if (volume != null && volume.doubleValue() > 0) {
-				totalM3 += volume;
-			}
-		}
-		
-		long triangles = 0;
-		Map<String, AtomicInteger> map = new HashMap<>();
-
-		TreeMap<Long, List<IfcProduct>> topMap = new TreeMap<>(new Comparator<Long>() {
-
-	        @Override
-	        public int compare(Long o1, Long o2) {
-	            return o2>o1?1:o2==o1?0:-1;
-	        }
-	    });
+		long totalTriangles = 0;
+		double totalM3 = 0 ;
+		Map<Double, ArrayList<IfcProduct>> topMap = new HashMap<Double, ArrayList<IfcProduct>>();
 		
 		List<IfcProduct> allWithSubTypes = model.getAllWithSubTypes(IfcProduct.class);
 		for (IfcProduct ifcProduct : allWithSubTypes) {
-			if (!map.containsKey(ifcProduct.eClass().getName())) {
-				map.put(ifcProduct.eClass().getName(), new AtomicInteger(0));
-			}
-			if (!(ifcProduct instanceof IfcWallStandardCase)) {
-				continue;
-			}
-			
-			
-			Tristate isExternal = IfcUtils.getBooleanProperty(ifcProduct, "IsExternal");
-			if (isExternal == Tristate.TRUE) {
-				GeometryInfo geometryInfo = ifcProduct.getGeometry();
-				if (geometryInfo != null) {
-					GeometryData geometryData = geometryInfo.getData();
-					if (geometryData != null) {
-						map.get(ifcProduct.eClass().getName()).incrementAndGet();
-						
-						ByteBuffer indicesBuffer = ByteBuffer.wrap(geometryData.getIndices());
-						indicesBuffer.order(ByteOrder.LITTLE_ENDIAN);
-						IntBuffer indices = indicesBuffer.asIntBuffer();
+			GeometryInfo geometryInfo = ifcProduct.getGeometry();
+			if (geometryInfo != null) 
+			{
+				int nrTriangles = ifcProduct.getGeometry().getPrimitiveCount();
+				totalTriangles += nrTriangles;
+				Double volume =  IfcUtils.getIfcQuantityVolume(ifcProduct, "NetVolume");
+				Double trianglesPerM3 = new Double(0);
+				if (volume != null && volume > 0) 
+				{
+					totalM3 += volume;
+					trianglesPerM3 = new Double(nrTriangles/volume.doubleValue()) ;
 
-						ByteBuffer verticesBuffer = ByteBuffer.wrap(geometryData.getVertices());
-						verticesBuffer.order(ByteOrder.LITTLE_ENDIAN);
-
-						long currentTriangles = (indices.capacity() / 3);
-						triangles += currentTriangles;
-						if (!topMap.keySet().contains(new Long(triangles)))
-						{
-							topMap.put(new Long(triangles), new ArrayList<IfcProduct>());
-						}
-						topMap.get(new Long(triangles)).add(ifcProduct);
-					}
+					if (!topMap.keySet().contains(trianglesPerM3))
+					{
+						topMap.put(trianglesPerM3, new ArrayList<IfcProduct>());
+					} 
+					topMap.get(trianglesPerM3).add(ifcProduct);
 				}
 			}
 		}
@@ -198,47 +146,68 @@ public class AnalysesServiceDetailed  extends AbstractAddExtendedDataService {
 		if (outputFormat == outputFormats.JSON)
 		{
 			ObjectNode  totaltrianglesJSON = OBJECT_MAPPER.createObjectNode();
-			totaltrianglesJSON.put("triangles", triangles);
+			totaltrianglesJSON.put("triangles", totalTriangles);
 			results.add(totaltrianglesJSON);
 			
-			ObjectNode  M3JSON = OBJECT_MAPPER.createObjectNode();
-			M3JSON.put("m3", totalM3);
-			results.add(M3JSON);
-
 			ObjectNode  trianglesPerM3JSON = OBJECT_MAPPER.createObjectNode();
-			trianglesPerM3JSON.put("triangles_per_m3", triangles/totalM3);
-			results.add(trianglesPerM3JSON);
+			trianglesPerM3JSON.put("triangles_per_m3", (totalM3>0?(totalTriangles/totalM3):0));
 
-			ObjectNode  top10ObjectJSON = OBJECT_MAPPER.createObjectNode();
 			ArrayNode  top10JSON = OBJECT_MAPPER.createArrayNode();
 
-			int nrOfTops = 0 ; 
-			for (Long key : topMap.keySet())
+			int nrOfTops = 0 ;
+			Set<Double> keySet = topMap.keySet();
+			Double[] keyArray = new Double[keySet.size()];
+			keySet.toArray(keyArray);
+			Arrays.sort(keyArray,Collections.reverseOrder());
+			int counter = 0 ;
+			for (Double key : keyArray)
 			{
 				if (nrOfTops >= 10)
 					break;
 
 				for (IfcProduct product: topMap.get(key))
 				{
-					top10ObjectJSON.put("top10trianglesOID", product.getGlobalId() );
+					ObjectNode  top10ObjectJSON = OBJECT_MAPPER.createObjectNode();		
+					top10ObjectJSON.put("#",++counter );
+					top10ObjectJSON.put("Oid", product.getOid() );
+					top10ObjectJSON.put("Name", product.getName() );
+					top10ObjectJSON.put("triangles per m3",key);
 					top10JSON.add(top10ObjectJSON);
 					nrOfTops++;
 				}
 			}
-			results.add(top10JSON);
+			trianglesPerM3JSON.putPOJO("Top 10", top10JSON);
 
-		
+			results.add(trianglesPerM3JSON);
+
 		}
 		else
 		{
-			extendedData.append("Total number of triangles : " + triangles + "\n");
-			extendedData.append("Total m3 : " + totalM3 + "\n");
-			extendedData.append("Number of triangles per m3: " + triangles/totalM3 + "\n");
-			LOGGER.debug("total number of triangles : " + triangles);
-			LOGGER.debug("total m3 : " + totalM3);
-			LOGGER.debug("number of triangles per m3: " + triangles/totalM3);
+			extendedData.append("Total number of triangles : " + totalTriangles + "\n");
+			extendedData.append("Number of triangles per m3: " + totalTriangles/totalM3 + "\n");
+			LOGGER.debug("total number of triangles : " + totalTriangles);
+			LOGGER.debug("number of triangles per m3: " + totalTriangles/totalM3);
 			extendedData.append("Top 10 object with most number of triangles:\n");
 			LOGGER.debug("Top 10 object with most number of triangles:\n");
+			int nrOfTops = 0 ;
+			Set<Double> keySet = topMap.keySet();
+			Double[] keyArray = new Double[keySet.size()];
+			keySet.toArray(keyArray);
+			Arrays.sort(keyArray,Collections.reverseOrder());
+			int counter = 0 ;
+			for (Double key : keyArray)
+			{
+				if (nrOfTops >= 10)
+					break;
+
+				for (IfcProduct product: topMap.get(key))
+				{
+					extendedData.append("\t " + counter++ + ": " + product.getName() + "(" + product.getOid() + ") has " +  key + "trangles per m3.\n");
+					LOGGER.debug("\t " + counter++ + ": " + product.getName() + "(" + product.getOid() + ") has " +  key + "trangles per m3.");
+					nrOfTops++;
+				}
+			}
+			
 		}
 		
 		
@@ -303,9 +272,7 @@ public class AnalysesServiceDetailed  extends AbstractAddExtendedDataService {
 
 			ObjectNode  totalObjectsxWithVoodooPropertiesSetsJSON = OBJECT_MAPPER.createObjectNode();
 			totalObjectsxWithVoodooPropertiesSetsJSON.put("Ojects with voodoo properties sets", objectWithVodooSet.size());
-			results.add(totalObjectsxWithVoodooPropertiesSetsJSON);
 
-			
 			ObjectNode  totalObjectsxWithVoodooPropertiesJSON = OBJECT_MAPPER.createObjectNode();
 			totalObjectsxWithVoodooPropertiesJSON.put("Ojects with voodoo properties", objectWithVodooProp.size());
 			
@@ -319,8 +286,9 @@ public class AnalysesServiceDetailed  extends AbstractAddExtendedDataService {
 				objectWithVodooPropertiesSetArrayJSON.add(setNodeJSON);
 				
 			}
-			totalObjectsxWithVoodooPropertiesJSON.putPOJO("objectsWithPropertieSet", objectWithVodooPropertiesSetArrayJSON);
-			
+			totalObjectsxWithVoodooPropertiesSetsJSON.putPOJO("objectsWithPropertieSet", objectWithVodooPropertiesSetArrayJSON);
+			results.add(totalObjectsxWithVoodooPropertiesSetsJSON);
+		
 			ArrayNode  objectWithVodooPropertiesArrayJSON = OBJECT_MAPPER.createArrayNode();
 			
 			for (IfcObject obj : objectWithVodooProp)
