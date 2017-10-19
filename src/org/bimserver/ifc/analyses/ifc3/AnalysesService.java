@@ -7,10 +7,13 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
+import org.bimserver.bimbots.BimBotsException;
+import org.bimserver.bimbots.BimBotsInput;
+import org.bimserver.bimbots.BimBotsOutput;
 import org.bimserver.emf.IdEObject;
 import org.bimserver.emf.IfcModelInterface;
 import org.bimserver.interfaces.objects.SObjectType;
-import org.bimserver.interfaces.objects.SProject;
 import org.bimserver.models.geometry.GeometryInfo;
 import org.bimserver.models.ifc2x3tc1.IfcObject;
 import org.bimserver.models.ifc2x3tc1.IfcProduct;
@@ -23,8 +26,8 @@ import org.bimserver.models.ifc2x3tc1.IfcRelDefines;
 import org.bimserver.models.ifc2x3tc1.IfcRelDefinesByProperties;
 import org.bimserver.models.ifc2x3tc1.IfcRoot;
 import org.bimserver.models.ifc2x3tc1.impl.IfcObjectImpl;
-import org.bimserver.plugins.services.AbstractAddExtendedDataService;
-import org.bimserver.plugins.services.BimServerClientInterface;
+import org.bimserver.plugins.SchemaName;
+import org.bimserver.plugins.services.BimBotAbstractService;
 import org.bimserver.utils.IfcUtils;
 import org.eclipse.emf.common.util.EList;
 import org.slf4j.Logger;
@@ -37,7 +40,7 @@ import com.google.common.base.Charsets;
 import com.google.common.collect.BiMap;
 
 
-public class AnalysesService  extends AbstractAddExtendedDataService {
+public class AnalysesService extends BimBotAbstractService {
 
 	private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
@@ -51,9 +54,6 @@ public class AnalysesService  extends AbstractAddExtendedDataService {
 	private static final Logger LOGGER = LoggerFactory.getLogger(AnalysesService.class);
 	private final String STANDARD_SET_PREFIX = "Pset_";
 		
-	public AnalysesService() {
-		super("analysesNameSpace");
-	}
 	
 	public void setOuputFormat(outputFormats outputformat)
 	{
@@ -61,16 +61,12 @@ public class AnalysesService  extends AbstractAddExtendedDataService {
 	}
 	
 	@Override
-	public void newRevision(RunningService runningService, BimServerClientInterface bimServerClientInterface, long poid,
-			long roid, String userToken, long soid, SObjectType settings) throws Exception {
-		
+	public BimBotsOutput runBimBot(BimBotsInput input, SObjectType settings) throws BimBotsException {
 		LOGGER.debug("Starting Analayses plugin!!!! ");			
 
 		StringBuffer extendedData = new StringBuffer();  
-		SProject project;
-		project = bimServerClientInterface.getServiceInterface().getProjectByPoid(poid);
-		
-		IfcModelInterface model =  bimServerClientInterface.getModel(project, roid, true, true, true);
+
+		IfcModelInterface model =  input.getIfcModel();
 		
 		ObjectNode result = OBJECT_MAPPER.createObjectNode();
 		ArrayNode results = OBJECT_MAPPER.createArrayNode();
@@ -331,23 +327,35 @@ public class AnalysesService  extends AbstractAddExtendedDataService {
 			
 			extendedData.append("Number of objects with classification: " + classifiedObjectsList.size() + "\n");
 			LOGGER.debug("Number of objects with classification: " + classifiedObjectsList.size());
-		}		
+		}	
 		
+		BimBotsOutput output = null;
+
 		if (outputFormat == outputFormats.JSON)
 		{
 			result.putPOJO("results", results);
 			String json = result.toString();
 			LOGGER.debug("Adding text to extended data : " + json);	
-			addExtendedData(json.getBytes(Charsets.UTF_8), "test.txt", "Test", "text/plain", bimServerClientInterface, roid);
+			output = new BimBotsOutput(SchemaName.UNSTRUCTURED_UTF8_TEXT_1_0, json.getBytes(Charsets.UTF_8));
 
 		}
-		else
+		else 
 		{	
 			LOGGER.debug("Adding text to extended data : " + extendedData.toString());	
-			addExtendedData(extendedData.toString().getBytes(Charsets.UTF_8), "test.txt", "Test", "text/plain", bimServerClientInterface, roid);
+			output = new BimBotsOutput(SchemaName.UNSTRUCTURED_UTF8_TEXT_1_0, extendedData.toString().getBytes(Charsets.UTF_8));
 		}
+		
+		output.setTitle("BimBotDemoService Results");
+		output.setContentType("text/plain");
+		return output;
 		
 		
 	}
+
+	@Override
+	public SchemaName getOutputSchema() {
+		return SchemaName.UNSTRUCTURED_UTF8_TEXT_1_0;
+	}
+
 
 }

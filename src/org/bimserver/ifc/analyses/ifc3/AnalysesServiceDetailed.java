@@ -7,10 +7,13 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
+import org.bimserver.bimbots.BimBotsException;
+import org.bimserver.bimbots.BimBotsInput;
+import org.bimserver.bimbots.BimBotsOutput;
 import org.bimserver.emf.IdEObject;
 import org.bimserver.emf.IfcModelInterface;
 import org.bimserver.interfaces.objects.SObjectType;
-import org.bimserver.interfaces.objects.SProject;
 import org.bimserver.models.geometry.GeometryInfo;
 import org.bimserver.models.ifc2x3tc1.IfcObject;
 import org.bimserver.models.ifc2x3tc1.IfcProduct;
@@ -23,8 +26,8 @@ import org.bimserver.models.ifc2x3tc1.IfcRelDefines;
 import org.bimserver.models.ifc2x3tc1.IfcRelDefinesByProperties;
 import org.bimserver.models.ifc2x3tc1.IfcRoot;
 import org.bimserver.models.ifc2x3tc1.impl.IfcObjectImpl;
-import org.bimserver.plugins.services.AbstractAddExtendedDataService;
-import org.bimserver.plugins.services.BimServerClientInterface;
+import org.bimserver.plugins.SchemaName;
+import org.bimserver.plugins.services.BimBotAbstractService;
 import org.bimserver.utils.IfcUtils;
 import org.eclipse.emf.common.util.EList;
 import org.slf4j.Logger;
@@ -37,7 +40,7 @@ import com.google.common.base.Charsets;
 import com.google.common.collect.BiMap;
 
 
-public class AnalysesServiceDetailed  extends AbstractAddExtendedDataService {
+public class AnalysesServiceDetailed  extends BimBotAbstractService {
 
 	private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
@@ -51,9 +54,6 @@ public class AnalysesServiceDetailed  extends AbstractAddExtendedDataService {
 	private static final Logger LOGGER = LoggerFactory.getLogger(AnalysesServiceDetailed.class);
 	private final String STANDARD_SET_PREFIX = "Pset_";
 		
-	public AnalysesServiceDetailed() {
-		super("analysesNameSpace");
-	}
 	
 	public void setOuputFormat(outputFormats outputformat)
 	{
@@ -61,16 +61,12 @@ public class AnalysesServiceDetailed  extends AbstractAddExtendedDataService {
 	}
 	
 	@Override
-	public void newRevision(RunningService runningService, BimServerClientInterface bimServerClientInterface, long poid,
-			long roid, String userToken, long soid, SObjectType settings) throws Exception {
-				
+	public BimBotsOutput runBimBot(BimBotsInput input, SObjectType settings) throws BimBotsException {
 		LOGGER.debug("Starting Detailed Analayses Plugin !!!! ");			
 
 		StringBuffer extendedData = new StringBuffer();  
-		SProject project;
-		project = bimServerClientInterface.getServiceInterface().getProjectByPoid(poid);
 		
-		IfcModelInterface model =  bimServerClientInterface.getModel(project, roid, true, true, true);
+		IfcModelInterface model =  input.getIfcModel();
 		
 		ObjectNode result = OBJECT_MAPPER.createObjectNode();
 		ArrayNode results = OBJECT_MAPPER.createArrayNode();
@@ -368,7 +364,7 @@ public class AnalysesServiceDetailed  extends AbstractAddExtendedDataService {
 			totalClassifications.put("Number of classification", classificationsList.size());
 
 			//log by kinds
-/*			ArrayNode  classificationTypeArrayJSON = OBJECT_MAPPER.createArrayNode();
+			ArrayNode  classificationTypeArrayJSON = OBJECT_MAPPER.createArrayNode();
 			ArrayNode  objectsWithClassificationTypeArrayJSON = OBJECT_MAPPER.createArrayNode();
 		
 			for (IfcRelAssociatesClassification classification : classificationByKinds.keySet())
@@ -377,7 +373,7 @@ public class AnalysesServiceDetailed  extends AbstractAddExtendedDataService {
 				ObjectNode  classificationTypeJSON = OBJECT_MAPPER.createObjectNode();
 				classificationTypeJSON.put("Classification", classification.getName());
 				classificationTypeJSON.put("Cid", classification.getOid());
-				
+				//classification.getRelatingClassification()
 				for (IfcRoot object : classificationByKinds.get(classification) )
 				{	
 					ObjectNode  objectWithClassificationTypeJSON = OBJECT_MAPPER.createObjectNode();
@@ -390,33 +386,32 @@ public class AnalysesServiceDetailed  extends AbstractAddExtendedDataService {
 				classificationTypeArrayJSON.add(classificationTypeJSON);
 			}
 			totalClassifications.putPOJO("Classifications", classificationTypeArrayJSON);
-			*/
+			
 			
 			
 			//log by Object
-			ObjectNode  totalObjectsWithClassificationJSON = OBJECT_MAPPER.createObjectNode();
-			totalObjectsWithClassificationJSON.put("Number of objects with classification", classifiedObjectsList.size());
+/*			ObjectNode totalObjectsWithClassificationJSON = OBJECT_MAPPER.createObjectNode();
+			totalObjectsWithClassificationJSON.put("Number of objects with classification",
+					classifiedObjectsList.size());
 
-			ArrayNode  objectArrayJSON = OBJECT_MAPPER.createArrayNode();
-			
-			for (IfcRoot object : classificationByObject.keySet())
-			{
-				ObjectNode  ObjectWithClassificationJSON = OBJECT_MAPPER.createObjectNode();
+			ArrayNode objectArrayJSON = OBJECT_MAPPER.createArrayNode();
+
+			for (IfcRoot object : classificationByObject.keySet()) {
+				ObjectNode ObjectWithClassificationJSON = OBJECT_MAPPER.createObjectNode();
 				ObjectWithClassificationJSON.put("IfcObject", object.getName());
 				ObjectWithClassificationJSON.put("Oid", object.getOid());
-				ArrayNode  classificationTypeForObjectsArrayJSON = OBJECT_MAPPER.createArrayNode();
+				ArrayNode classificationTypeForObjectsArrayJSON = OBJECT_MAPPER.createArrayNode();
 
-				for (IfcRelAssociatesClassification classification : classificationByObject.get(object) )
-				{
-					ObjectNode  classificationTypeJSON = OBJECT_MAPPER.createObjectNode();
+				for (IfcRelAssociatesClassification classification : classificationByObject.get(object)) {
+					ObjectNode classificationTypeJSON = OBJECT_MAPPER.createObjectNode();
 					classificationTypeJSON.put("Classification", classification.getName());
 					classificationTypeJSON.put("ClassificationId", classification.getOid());
 					classificationTypeForObjectsArrayJSON.add(classificationTypeJSON);
 				}
-				ObjectWithClassificationJSON.putPOJO("Classifications",classificationTypeForObjectsArrayJSON);
+				ObjectWithClassificationJSON.putPOJO("Classifications", classificationTypeForObjectsArrayJSON);
 				objectArrayJSON.add(ObjectWithClassificationJSON);
 			}
-			totalClassifications.putPOJO("Objects", objectArrayJSON);
+			totalClassifications.putPOJO("Objects", objectArrayJSON);*/
 			
 			results.add(totalClassifications);
 		
@@ -424,7 +419,7 @@ public class AnalysesServiceDetailed  extends AbstractAddExtendedDataService {
 		else
 		{
 			//log by kinds
-/*			extendedData.append("Number of objects with classification: " + classifiedObjectsList.size() + "\n");
+			extendedData.append("Number of objects with classification: " + classifiedObjectsList.size() + "\n");
 			LOGGER.debug("Number of objects with classification: " + classifiedObjectsList.size());
 			extendedData.append("Type of classifications: " + "\n");
 			LOGGER.debug("Type of classifications:");
@@ -440,8 +435,8 @@ public class AnalysesServiceDetailed  extends AbstractAddExtendedDataService {
 
 				}
 			}
-*/			
-			// log by Objects
+			
+	/*		// log by Objects
 			
 			extendedData.append("Number of objects with classification: " + classifiedObjectsList.size() + "\n");
 			LOGGER.debug("Number of objects with classification: " + classifiedObjectsList.size());
@@ -457,25 +452,35 @@ public class AnalysesServiceDetailed  extends AbstractAddExtendedDataService {
 					LOGGER.debug("\t\t"+ classification.getName() );	
 
 				}
-			}
+			}*/
 
 		}		
+		
+		BimBotsOutput output = null;
 		
 		if (outputFormat == outputFormats.JSON)
 		{
 			result.putPOJO("results", results);
 			String json = result.toString();
 			LOGGER.debug("Adding text to extended data : " + json);	
-			addExtendedData(json.getBytes(Charsets.UTF_8), "test.txt", "Test", "text/plain", bimServerClientInterface, roid);
+			output = new BimBotsOutput(SchemaName.UNSTRUCTURED_UTF8_TEXT_1_0, json.getBytes(Charsets.UTF_8));
 
 		}
-		else
+		else 
 		{	
 			LOGGER.debug("Adding text to extended data : " + extendedData.toString());	
-			addExtendedData(extendedData.toString().getBytes(Charsets.UTF_8), "test.txt", "Test", "text/plain", bimServerClientInterface, roid);
+			output = new BimBotsOutput(SchemaName.UNSTRUCTURED_UTF8_TEXT_1_0, extendedData.toString().getBytes(Charsets.UTF_8));
 		}
 		
-		
+		output.setTitle("BimBotDemoService Results");
+		output.setContentType("text/plain");
+		return output;
+	}
+
+
+	@Override
+	public SchemaName getOutputSchema() {
+		return SchemaName.UNSTRUCTURED_UTF8_TEXT_1_0;
 	}
 
 }
