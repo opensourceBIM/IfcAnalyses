@@ -374,7 +374,7 @@ public class AnalysesServiceDetailed  extends BimBotAbstractService {
 				ObjectNode  classificationTypeJSON = OBJECT_MAPPER.createObjectNode();
 				classificationTypeJSON.put("Cid", classification.getOid());
 				if (classification.getRelatingClassification() instanceof IfcClassificationReference) {
-					classificationTypeJSON.put("Classification rel", ((IfcClassificationReference)classification.getRelatingClassification()).getName());
+					classificationTypeJSON.put("Classification", ((IfcClassificationReference)classification.getRelatingClassification()).getName());
 				}
 				else {
 					classificationTypeJSON.put("Classification", classification.getName());
