@@ -15,6 +15,7 @@ import org.bimserver.emf.IdEObject;
 import org.bimserver.emf.IfcModelInterface;
 import org.bimserver.interfaces.objects.SObjectType;
 import org.bimserver.models.geometry.GeometryInfo;
+import org.bimserver.models.ifc2x3tc1.IfcClassificationNotationSelect;
 import org.bimserver.models.ifc2x3tc1.IfcClassificationReference;
 import org.bimserver.models.ifc2x3tc1.IfcObject;
 import org.bimserver.models.ifc2x3tc1.IfcProduct;
@@ -329,33 +330,31 @@ public class AnalysesServiceDetailed  extends BimBotAbstractService {
 
 		}
 		
+		
 		/*
-		 * Number of objects with Classification attributes
+		 * Classifications by Kind
 		 */
 		
 		ArrayList<IfcRoot> classifiedObjectsList = new ArrayList<IfcRoot>();
 		List<IfcRelAssociatesClassification> classificationsList = model.getAllWithSubTypes(IfcRelAssociatesClassification.class);
-		Map<IfcRelAssociatesClassification, List<IfcRoot>> classificationByKinds = new HashMap<IfcRelAssociatesClassification, List<IfcRoot>>();
-		Map<IfcRoot, List<IfcRelAssociatesClassification>> classificationByObject = new HashMap<IfcRoot, List<IfcRelAssociatesClassification>>();
+		Map<String, List<IfcRoot>> classificationByKinds = new HashMap<String, List<IfcRoot>>();
 		
 		for (IfcRelAssociatesClassification ifcRelAssociatesClassification : classificationsList)
 		{
-			if (!classificationByKinds.containsKey(ifcRelAssociatesClassification))
-				classificationByKinds.put(ifcRelAssociatesClassification,new ArrayList<>());
-			EList<IfcRoot> a = ifcRelAssociatesClassification.getRelatedObjects();
-			for (IfcRoot ifcRoot : a)
+			if (ifcRelAssociatesClassification.getRelatingClassification() instanceof IfcClassificationReference)
 			{
-				if (!classificationByObject.containsKey(ifcRoot))
+				if (!classificationByKinds.containsKey(((IfcClassificationReference)ifcRelAssociatesClassification.getRelatingClassification()).getName()))
+					classificationByKinds.put(((IfcClassificationReference)ifcRelAssociatesClassification.getRelatingClassification()).getName(),new ArrayList<>());
+				EList<IfcRoot> a = ifcRelAssociatesClassification.getRelatedObjects();
+				for (IfcRoot ifcRoot : a)
 				{
-					classificationByObject.put(ifcRoot, new ArrayList<IfcRelAssociatesClassification>());
-				}
-				classificationByObject.get(ifcRoot).add(ifcRelAssociatesClassification);
-				classificationByKinds.get(ifcRelAssociatesClassification).add(ifcRoot);
-				if (!classifiedObjectsList.contains(ifcRoot))
-				{
-					classifiedObjectsList.add(ifcRoot);
-			    }
-			}  
+					classificationByKinds.get(((IfcClassificationReference)ifcRelAssociatesClassification.getRelatingClassification()).getName()).add(ifcRoot);
+					if (!classifiedObjectsList.contains(ifcRoot))
+					{
+						classifiedObjectsList.add(ifcRoot);
+				    }
+				} 
+			}
 		}
 		
 
@@ -366,20 +365,14 @@ public class AnalysesServiceDetailed  extends BimBotAbstractService {
 
 			//log by kinds
 			ArrayNode  classificationTypeArrayJSON = OBJECT_MAPPER.createArrayNode();
-			ArrayNode  objectsWithClassificationTypeArrayJSON = OBJECT_MAPPER.createArrayNode();
 		
-			for (IfcRelAssociatesClassification classification : classificationByKinds.keySet())
+			for (String classification : classificationByKinds.keySet())
 			{
-
+				ArrayNode  objectsWithClassificationTypeArrayJSON = OBJECT_MAPPER.createArrayNode();
 				ObjectNode  classificationTypeJSON = OBJECT_MAPPER.createObjectNode();
-				classificationTypeJSON.put("Cid", classification.getOid());
-				if (classification.getRelatingClassification() instanceof IfcClassificationReference) {
-					classificationTypeJSON.put("Classification", ((IfcClassificationReference)classification.getRelatingClassification()).getName());
-				}
-				else {
-					classificationTypeJSON.put("Classification", classification.getName());
-				}
 
+				classificationTypeJSON.put("#Objects", classificationByKinds.get(classification).size());
+				classificationTypeJSON.put("Classification", classification);
 				for (IfcRoot object : classificationByKinds.get(classification) )
 				{	
 					ObjectNode  objectWithClassificationTypeJSON = OBJECT_MAPPER.createObjectNode();
@@ -429,11 +422,11 @@ public class AnalysesServiceDetailed  extends BimBotAbstractService {
 			LOGGER.debug("Number of objects with classification: " + classifiedObjectsList.size());
 			extendedData.append("Type of classifications: " + "\n");
 			LOGGER.debug("Type of classifications:");
-			for (IfcRelAssociatesClassification classification : classificationByKinds.keySet())
+			for (String  classification : classificationByKinds.keySet())
 			{
 				
-				extendedData.append("\t"+ classification.getName() + ":\n");
-				LOGGER.debug("\t"+ classification.getName()+ ":");	
+				extendedData.append("\t"+ classification + ":\n");
+				LOGGER.debug("\t"+classification+ ":");	
 				for (IfcRoot object : classificationByKinds.get(classification) )
 				{
 					extendedData.append("\t\t"+ object.getName() + "\n");
