@@ -15,6 +15,7 @@ import org.bimserver.emf.IdEObject;
 import org.bimserver.emf.IfcModelInterface;
 import org.bimserver.interfaces.objects.SObjectType;
 import org.bimserver.models.geometry.GeometryInfo;
+import org.bimserver.models.ifc2x3tc1.IfcClassificationReference;
 import org.bimserver.models.ifc2x3tc1.IfcObject;
 import org.bimserver.models.ifc2x3tc1.IfcProduct;
 import org.bimserver.models.ifc2x3tc1.IfcProperty;
@@ -371,9 +372,14 @@ public class AnalysesServiceDetailed  extends BimBotAbstractService {
 			{
 
 				ObjectNode  classificationTypeJSON = OBJECT_MAPPER.createObjectNode();
-				classificationTypeJSON.put("Classification", classification.getName());
 				classificationTypeJSON.put("Cid", classification.getOid());
-				//classification.getRelatingClassification()
+				if (classification.getRelatingClassification() instanceof IfcClassificationReference) {
+					classificationTypeJSON.put("Classification rel", ((IfcClassificationReference)classification.getRelatingClassification()).getName());
+				}
+				else {
+					classificationTypeJSON.put("Classification", classification.getName());
+				}
+
 				for (IfcRoot object : classificationByKinds.get(classification) )
 				{	
 					ObjectNode  objectWithClassificationTypeJSON = OBJECT_MAPPER.createObjectNode();
