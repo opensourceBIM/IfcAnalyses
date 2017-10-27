@@ -74,10 +74,9 @@ public class AnalysesService extends BimBotAbstractService {
 
 		long totalTriangles = 0;
 		double totalM3 = 0;
-		Map<Double, ArrayList<IfcProduct>> topMap = new HashMap<Double, ArrayList<IfcProduct>>();
-
-		List<IfcProduct> allWithSubTypes = model.getAllWithSubTypes(IfcProduct.class);
-		for (IfcProduct ifcProduct : allWithSubTypes) {
+		Map<Double, List<IfcProduct>> topMap = new HashMap<>();
+		
+		for (IfcProduct ifcProduct : allIfcProducts) {
 			GeometryInfo geometryInfo = ifcProduct.getGeometry();
 			if (geometryInfo != null) {
 				int nrTriangles = ifcProduct.getGeometry().getPrimitiveCount();
