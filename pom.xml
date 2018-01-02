@@ -157,12 +157,7 @@
 		<dependency>
 			<groupId>org.opensourcebim</groupId>
 			<artifactId>pluginbase</artifactId>
-			<version>1.5.89-SNAPSHOT</version>
-		</dependency>
-		<dependency>
-			<groupId>org.opensourcebim</groupId>
-			<artifactId>bcf</artifactId>
-			<version>0.0.13</version>
+			<version>1.5.93</version>
 		</dependency>
 	</dependencies>
 	<scm>
