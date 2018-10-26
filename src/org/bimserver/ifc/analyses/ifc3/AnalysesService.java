@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.bimserver.bimbots.BimBotContext;
 import org.bimserver.bimbots.BimBotsException;
 import org.bimserver.bimbots.BimBotsInput;
 import org.bimserver.bimbots.BimBotsOutput;
@@ -45,7 +46,7 @@ public class AnalysesService extends BimBotAbstractService {
 	private final String STANDARD_SET_PREFIX = "Pset_";
 
 	@Override
-	public BimBotsOutput runBimBot(BimBotsInput input, SObjectType settings) throws BimBotsException {
+	public BimBotsOutput runBimBot(BimBotsInput input, BimBotContext bimBotContext, SObjectType settings) throws BimBotsException {
 		LOGGER.debug("Starting Analayses plugin!!!! ");
 
 		IfcModelInterface model = input.getIfcModel();
@@ -81,7 +82,7 @@ public class AnalysesService extends BimBotAbstractService {
 			if (geometryInfo != null) {
 				int nrTriangles = ifcProduct.getGeometry().getPrimitiveCount();
 				totalTriangles += nrTriangles;
-				Double volume = IfcUtils.getIfcQuantityVolume(ifcProduct, "NetVolume");
+				Double volume = IfcUtils.getIfcQuantityVolume(ifcProduct);
 				Double trianglesPerM3 = new Double(0);
 				if (volume != null && volume > 0) {
 					totalM3 += volume;
