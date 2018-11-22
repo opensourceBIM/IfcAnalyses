@@ -13,7 +13,6 @@ import org.bimserver.bimbots.BimBotsException;
 import org.bimserver.bimbots.BimBotsInput;
 import org.bimserver.bimbots.BimBotsOutput;
 import org.bimserver.emf.IfcModelInterface;
-import org.bimserver.interfaces.objects.SObjectType;
 import org.bimserver.models.geometry.GeometryInfo;
 import org.bimserver.models.ifc2x3tc1.IfcObject;
 import org.bimserver.models.ifc2x3tc1.IfcProduct;
@@ -26,6 +25,7 @@ import org.bimserver.models.ifc2x3tc1.IfcRelAssociatesClassification;
 import org.bimserver.models.ifc2x3tc1.IfcRelDefines;
 import org.bimserver.models.ifc2x3tc1.IfcRelDefinesByProperties;
 import org.bimserver.models.ifc2x3tc1.IfcRoot;
+import org.bimserver.plugins.PluginConfiguration;
 import org.bimserver.plugins.SchemaName;
 import org.bimserver.plugins.services.BimBotAbstractService;
 import org.bimserver.utils.IfcUtils;
@@ -46,7 +46,7 @@ public class AnalysesService extends BimBotAbstractService {
 	private final String STANDARD_SET_PREFIX = "Pset_";
 
 	@Override
-	public BimBotsOutput runBimBot(BimBotsInput input, BimBotContext bimBotContext, SObjectType settings) throws BimBotsException {
+	public BimBotsOutput runBimBot(BimBotsInput input, BimBotContext bimBotContext, PluginConfiguration pluginConfiguration) throws BimBotsException {
 		LOGGER.debug("Starting Analayses plugin!!!! ");
 
 		IfcModelInterface model = input.getIfcModel();
