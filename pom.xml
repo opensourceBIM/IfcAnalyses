@@ -3,7 +3,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>org.opensourcebim</groupId>
   <artifactId>ifcanalyses</artifactId>
-  <version>0.0.34</version>
+  <version>0.0.35-SNAPSHOT</version>
   <name>IfcAnalyses</name>
   <description>BIMserver plugin that provides IFC Analyses</description>
   <url>https://github.com/opensourceBIM/IfcAnalyses</url>
@@ -27,7 +27,7 @@
   <scm>
     <connection>scm:git:https://github.com/opensourceBIM/IfcAnalyses.git</connection>
     <developerConnection>scm:git:https://github.com/opensourceBIM/IfcAnalyses.git</developerConnection>
-    <tag>ifcanalyses-0.0.34</tag>
+    <tag>ifcanalyses-0.0.01</tag>
     <url>https://github.com/opensourceBIM/IfcAnalyses.git</url>
   </scm>
   <issueManagement>
